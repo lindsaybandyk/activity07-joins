@@ -1,11 +1,12 @@
 ---
 title: "Activity 7"
-author: "Name"
+author: "Lindsay Bandyk"
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(error = TRUE)
+library(tidyverse)
 ```
 
 ## Data and packages
@@ -31,6 +32,11 @@ Read each of the three files using `here::here` in combination with the appropri
 Assign each file to a meaningful object name (e.g., `dennys`,`laquinta`, and `states`), be sure to avoid printing any unnecessary information.
 Give your code chunk a meaningful name.
 
+```{r reading in data, messages = FALSE}
+dennys <- read_csv(here::here("data", "dennys.csv"))
+laquinta <- read_csv(here::here("data", "laquinta.csv"))
+states <- read_csv(here::here("data", "states.csv"))
+```
 
 
 
@@ -103,7 +109,23 @@ Don’t worry about implementing this yet, you only need to brainstorm some idea
 Include at least one idea as your answer, but you are welcome to write down a few options too.
 
 **Response**:
+```{r laquinta and dennys in all states}
+`%!in%` <- Negate(`%in%`)
+laquinta %>% 
+  filter(state %!in% c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"))
+dennys %>% 
+  filter(state %!in% c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"))
+```
 
+Yes, there are about 14 La Quinta locations outside of the USA (looks like they are in Mexico and Central America).
+No, there are no Denny's located outside the USA.
+
+If we wanted to do this using the datasets, would we need to ?
+Don’t worry about implementing this yet, you only need to brainstorm some ideas.
+Include at least one idea as your answer, but you are welcome to write down a few options too.
+
+
+to see foreign locations.
 
 ### Preparing to Join
 
@@ -115,15 +137,24 @@ Do not assign this to anything; we only want to see if we need to be aware of no
 If there are any non-US locations, specify where these are.
 
 
+```{r abreviations and dennys}
+dennys %>% 
+  filter(state %!in% states$abbreviation)
+```
 
 
 **Response**:
-
+ no foreign locations 
 
 Now do this again, but using `anti_join`.
 To do so, take the Denny's locations and anti-join this with the states dataset.
 Remember to specify your `by` columns.
 
+
+```{r anti join}
+dennys %>% 
+  anti_join(states, by = c("state" = "abbreviation"))
+```
 
 
 #### Brief Aside
@@ -166,6 +197,10 @@ dennys %>%
 #### La Quinta
 
 Determine if La Quinta has any locations that are outside of the US.
+```{r laquinta}
+laquinta %>% 
+  anti_join(states, by = c("state" = "abbreviation"))
+```
 
 
 
@@ -176,6 +211,11 @@ For the rest of this activity, we will work with the data from the United States
 All Denny's locations in our file are in the US so we do not need to worry about updating this object, but you do need to do some work on the `laquinta` data.
 Create a new object called `laquinta_us` that only contains the locations inside the US.
 
+```{r isolation}
+laquinta_us <- laquinta %>% 
+  filter(state %in% states$abbreviation)
+laquinta_us
+```
 
 
 ### Fewest locations
@@ -184,24 +224,38 @@ Let's test some of our data summary skills.
 
 Which US state(s) has/ve the fewest Denny's location?
 
+```{r fewest locations}
+dennys %>% 
+  group_by(state) %>% 
+  summarize(num_locations = n_distinct(address)) %>% 
+  arrange(num_locations)
+```
 
 
 
 **Response**:
 
+delaware only has 1 location and it is the least  number of dennys 
 
 Which US state(s) has/ve the fewest La Quinta locations?
+```{r fewest quintas}
+laquinta_us %>% 
+  group_by(state) %>% 
+  summarize(num_locations = n_distinct(address)) %>% 
+  arrange(num_locations)
+```
 
 
 
 
 **Response**:
-
+maine has the fewest (only 1)
 
 Is this surprising to you? Why or why not?
 
-**Response**:
 
+**Response**:
+i mean kinda delaware needs some more dennys
 
 ### Locations per thousand square miles
 
@@ -217,6 +271,14 @@ To do this, we will need to join each company's tibble with the information in t
   Therefore, we will need to specify that the `state` variable from the `dennys` tibble should be matched `by` the `abbreviation` variable from the `states` tibble.
 3. *Then*, calculate the number of Denny's locations *per* thousand square miles.
 
+```{r dennys per 1000 sq miles}
+dennys %>% 
+  group_by(state) %>% 
+  summarize(n = n_distinct(address)) %>% 
+  inner_join(states, by = c("state" = "abbreviation")) %>% 
+  mutate(per = n / (area / 1000)) %>% 
+  arrange(desc(per))
+```
 
 
 
@@ -224,15 +286,25 @@ Which states have the most Denny's locations per thousand square miles?
 
 **Response**:
 
+RHode island california connecticut and maryland are all tied.
 
 #### La Quinta
 
 Similarly as we previously did for Denny's, calculate the number of La Quinta locations *per* thousand square miles.
 
+```{r la quintas per 1000 sq miles}
+laquinta_us %>% 
+  group_by(state) %>% 
+  summarize(n = n_distinct(address)) %>% 
+  inner_join(states, by = c("state" = "abbreviation")) %>% 
+  mutate(per = n / (area / 1000)) %>% 
+  arrange(desc(per))
+```
 
 
 
 **Response**:
+Rhode Island, Florida, Connecticut, and Marylnad have the most La Quintas locations per thousand square miles.
 
 
 ![](README-img/noun_pause.png) **Planned Pause Point**: If you have any questions, contact your instructor. Otherwise feel free to continue on.
@@ -247,13 +319,27 @@ Why would it not be wise to use a mutating join (e.g., `inner_join`, `left/right
 That is, both of the datasets have the same variable names, would it not make sense to join them at the same address?
 
 **Response**:
+```{r add)_establishment}
+pre_join_dennys <- dennys %>% 
+  mutate(establishment = "Denny's")
+pre_join_laquinta_us <- laquinta_us %>% 
+  mutate(establishment = "La Quinta")
+```
 
+```{r}
+dennys_laquinta <- bind_rows(pre_join_dennys, pre_join_laquinta_us)
+
+```
 
 If we were able to use a mutating join, what would this output would look like?
 Why would this not be helpful?
 
+
+
 **Response**:
 
+We can plot the locations of the two establishments using a scatter plot and color the points by the establishment type.
+Note that longitude should be plotted on the *x*-axis and latitude on the *y*-axis.
 
 You were already shown these top-notch animations from [Garrick Aden-Blue](https://www.garrickadenbuie.com/project/tidyexplain/).
 Again, they are a little old as they still use `spread` and `gather`, but the `*_join` are still accurate.
@@ -271,6 +357,19 @@ pre_join_laquinta_us <- laquinta_us %>%
 Now, stack these two `pre_join_*` tibbles on top of each other.
 After you have verified the stacking worked, assign the resulting object to `dennys_laquinta`.
 
+```{r stacking}
+library(maps)
+us_states <- map_data("state")
+dennys_laquinta %>% 
+  ggplot(mapping = aes(x = longitude, y = latitude, color = establishment)) +
+  geom_point(alpha = .5)
+us_states <- map_data("state") %>% 
+  select(lon = long, lat, group, id = subregion)
+ggplot() + 
+  geom_polygon(data = us_states, mapping = aes(lon, lat, group = group), fill = "white", colour = "grey50") +
+  geom_point(data = dennys_laquinta, mapping = aes(x = longitude, y = latitude, color = establishment), alpha = .5) +
+  coord_quickmap()
+```
 
 
 
@@ -282,7 +381,7 @@ Note that longitude should be plotted on the *x*-axis and latitude on the *y*-ax
 
 **Response**:
 
-
+the plot above  
 ### More with visualizing
 
 The following two items ask you to create visualizations.
@@ -303,10 +402,17 @@ Try adjusting the transparency of the points by setting the `alpha` level (so th
 Visually, does Mitch Hedberg’s joke appear to hold in Michigan?
 
 
+```{r michigan locatiosn}
+dennys_laquinta %>%
+  filter(state == "MI") %>% 
+  ggplot(mapping = aes(x = longitude, y = latitude, color = establishment)) +
+  geom_point(alpha = .5)
+```
 
 
 **Response**:
 
+No, it does not appear that Mitch Hedberg’s joke holds up very well in MI.  There are only two cities that a LaQuinta and Denny's are close to each other.
 
 #### Texas locations
 
@@ -315,9 +421,17 @@ Create the plot, with an appropriate `alpha` level.
 Visually, does Mitch Hedberg’s joke appear to hold here?
 
 
+```{r texas jokes}
+  filter(state == "TX") %>% 
+  ggplot(mapping = aes(x = longitude, y = latitude, color = establishment)) +
+  geom_point(alpha = .5)
+```
 
 
 **Response**:
+Mitch Hedberg’s joke holds up a little better in Texas as there are many more Denny's near La Quintas.
+
+
 
 
 ### Challenge: Dress up your maps
